@@ -1,0 +1,4 @@
+django
+psycopg2-binary
+mypostgresql
+rest_framework
