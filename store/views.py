@@ -1,13 +1,14 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from rest_framework.filters import SearchFilter, OrderingFilter
 from store.pagination import DefaultPagination
-from .models import Collection, OrderItem, Product, Review
-from .serializers import CollectionSerializer, ProductSerializer, ReviewSerializer
-from .filters import ProductFilter
+from .models import Collection, OrderItem, Product, Review, Cart, CartItem
+from .serializers import AddCartItemSerializer, CollectionSerializer, ProductSerializer, ReviewSerializer, CartSerializer, CartItemSerializer, UpdateCartItemSeriailizer
+from .filters import ProductFilter, CartItemFilter
 
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
@@ -200,3 +201,45 @@ class ReviewViewSets(ModelViewSet):
 #                 status = status.HTTP_405_METHOD_NOT_ALLOWED)
 #         collection.delete()
 #         return Response({'sucessfully deleted'},status = status.HTTP_204_NO_CONTENT)
+
+# ModelViewSet class provides all operation create, update, list, delete
+# since we dnot have list method to implement so we dont use ModelViewSet
+# instead we will use custom viewset
+class CartViewSet(CreateModelMixin,
+                RetrieveModelMixin,
+                DestroyModelMixin, 
+                GenericViewSet):
+    queryset = Cart.objects.prefetch_related('items__product').all()
+    serializer_class = CartSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        cart = get_object_or_404(Cart, pk=kwargs['pk'])
+        if cart.items.count() > 0:
+            return Response(
+                {'error': 'cart cannot be deleted becuase it is associated with an Product item'},
+                status = status.HTTP_405_METHOD_NOT_ALLOWED)
+        return super().destroy(request, *args, **kwargs)
+
+
+class CartItemViewSet(ModelViewSet):
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    # serializer_class = UpdateCartItemSeriailizer
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AddCartItemSerializer
+        elif self.request == 'PATCH':
+            return UpdateCartItemSeriailizer
+        return CartItemSerializer
+
+    def get_serializer_context(self):
+        return {'cart_id': self.kwargs['cart_pk']}
+
+    def get_queryset(self):
+        return CartItem.objects.filter(cart_id =self.kwargs['cart_pk'])
+    
+    # filter_backends = [DjangoFilterBackend, SearchFilter , OrderingFilter]
+    # filterset_class = CartItemFilter
+    # pagination_class = DefaultPagination
+    # search_fields = ['cart']
+    # ordering_fields = [ 'quantity']

@@ -24,9 +24,12 @@ urlpatterns = [
     path('store/', include('store.urls')),
     path('myFile/', include('myFile.urls')),
     path('api/',include('api.urls')),
-    path('api-token-auth/', views.obtain_auth_token)
+    path('api-token-auth/', views.obtain_auth_token),
+    path('uploads/', include('uploads.urls')),
+    # path('files/', include('files.urls')),
+    path('search/', include('search.urls')),
 
     # path('',include('api.urls')),
-    # path('api-token-auth', views.obtain_auth_token)
+    # path('api-token-auth',  views.obtain_auth_token)
 ]
 
